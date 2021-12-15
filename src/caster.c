@@ -1,4 +1,5 @@
 #include "../inc/caster.h"
+#include "../inc/material.h"
 
 v3_f32 ray_at(ray* r, f32 t)
 {
@@ -103,4 +104,52 @@ void free_hit_list(hit_list* list)
     list->head = NULL;
     list->types = NULL;
     list->count = 0;
+}
+
+v3_f32 ray_color(ray* r, hit_list* list, i32 depth)
+{
+    static const v3_f32 sc = {0, 0, -1};
+    static const v3_f32 white = { 1.0f, 1.0f, 1.0f };
+    static const v3_f32 black = { 0.0f, 0.0f, 0.0f };
+    static const v3_f32 blueish = { 0.5f, 0.7f, 1.0f };
+
+    hit_record rec;
+
+    if(depth <= 0)
+        return black;
+
+    if(hit_list_hit_all(list, r, 0.001f, 0xFFFFFF, &rec))
+    {
+        ray scattered;
+
+        switch (rec.m->type)
+        {
+        case MTYPE_LAMBERTIAN:
+            if(ray_scatter_lambertian(r, &rec, rec.m->color, &scattered))
+            {
+                return v3_f32_mult(rec.m->color, ray_color(&scattered, list, depth - 1));
+            }
+            break;
+        case MTYPE_METAL:
+            if(ray_scatter_metal(r, &rec, rec.m->color, &scattered))
+            {
+                return v3_f32_mult(rec.m->color, ray_color(&scattered, list, depth - 1));
+            }
+            break;
+        case MTYPE_DIELECTRIC:
+            if(ray_scatter_dielectric(r, &rec, rec.m->color, &scattered))
+            {
+                return v3_f32_mult(white, ray_color(&scattered, list, depth - 1));
+            }
+            break;
+        }
+
+        return black;
+    }
+    
+    v3_f32 u_dir = v3_f32_to_unit(r->d);
+    f32 t = 0.5f * (u_dir.y + 1.0f);
+
+
+    return v3_f32_add(v3_f32_scalar_mult(white, (1.0f - t)), v3_f32_scalar_mult(blueish, t));
 }

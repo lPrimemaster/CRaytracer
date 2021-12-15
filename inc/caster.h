@@ -48,4 +48,6 @@ hit_list new_hit_list();
 void free_hit_list(hit_list* list);
 void hit_list_add_tail(hit_list* list, void* hittable, i8 hit_type);
 i8 hit_list_hit_all(hit_list* list, ray* r, f32 tmin, f32 tmax, hit_record* rec);
+
+v3_f32 ray_color(ray* r, hit_list* list, i32 depth);
 #endif

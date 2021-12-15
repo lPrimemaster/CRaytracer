@@ -21,4 +21,7 @@ add_executable (Raytracer
 
     src/camera.c
     inc/camera.h
+
+    src/dispatcher.c
+    inc/dispatcher.h
     )
