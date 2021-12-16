@@ -36,11 +36,11 @@ typedef struct
     ray_dispatcher* disp;
 } ray_job;
 
-ray_dispatcher new_ray_dispatcher(u8 num_threads, i32 width, i32 height, i32 spp, cam_info* cam, img_buffer* img);
+ray_dispatcher new_ray_dispatcher(u8 num_threads, u8 blocks, i32 width, i32 height, i32 spp, cam_info* cam, img_buffer* img);
 void free_ray_dispatcher(ray_dispatcher* rd);
 
 void ray_dispatcher_add_job(ray_dispatcher* rd, ray_job* rj);
-void ray_dispatcher_worker_fence(ray_dispatcher* rd);
+clock_t ray_dispatcher_worker_fence(ray_dispatcher* rd);
 
 
 #endif

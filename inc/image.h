@@ -3,7 +3,12 @@
 #include "common.h"
 
 // Image buffer
-typedef struct img_buffer img_buffer;
+typedef struct
+{
+    u8* data;
+    u32 w;
+    u32 h;
+} img_buffer;
 
 // Asume rgb for now (TODO: Check malloc return)
 img_buffer* new_image_buffer(u32 w, u32 h);

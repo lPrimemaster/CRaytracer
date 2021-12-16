@@ -4,19 +4,20 @@
 #include "../inc/image.h"
 #include "../inc/camera.h"
 #include "../inc/dispatcher.h"
+#include "../inc/display.h"
 
 #include <time.h>
 
-int main(int argc, char* arg[])
+int main(int argc, char* argv[])
 {
     init_random();
     
     // Viewport / Image
     const f32 aspect = 16.0f / 9.0f;
-    const i32 width = 400;
+    const i32 width = atoi(argv[1]);
     const i32 height = (i32)(width / aspect);
-    const i32 spp = 8;
-    const i32 max_depth = 50;
+    const i32 spp = atoi(argv[2]);
+    const i32 max_depth = atoi(argv[3]);
 
     // Create hitlist (world)
     hit_list world = new_hit_list();
@@ -31,9 +32,9 @@ int main(int argc, char* arg[])
     material mat2 = {.type = MTYPE_METAL, .color = {0.7f, 0.6f, 0.5f}, .fuzziness = 0.0f};
 
     sphere s[3] = {
-        { .center = {0, 0.5f, 0}, .radius = 1.0f, .material = &mat0 },
-        { .center = {-4, 0.5f, 0}, .radius = 1.0f, .material = &mat1 },
-        { .center = {4, 0.5f, 0}, .radius = 1.0f, .material = &mat2 }
+        { .center = {0, 0, 0}, .radius = 0.7f, .material = &mat0 },
+        { .center = {-4, 0, 0}, .radius = 0.7f, .material = &mat1 },
+        { .center = {4, 0, 0}, .radius = 0.7f, .material = &mat2 }
     };
 
     hit_list_add_tail(&world, &s[0], HTYPE_SPHERE);
@@ -108,7 +109,7 @@ int main(int argc, char* arg[])
     image_buffer_set_all(image, black);
 
     // Render
-    ray_dispatcher dispatcher = new_ray_dispatcher(4, width, height, spp, &cam, image);
+    ray_dispatcher dispatcher = new_ray_dispatcher(4, 4, width, height, spp, &cam, image);
 
     // TODO: This is dumb! Refactor -> All inside ray_dispatcher
     ray_job rj1 = {.hl = &world, .depth = max_depth};
@@ -117,23 +118,30 @@ int main(int argc, char* arg[])
     ray_job rj4 = {.hl = &world, .depth = max_depth};
 
     clock_t begin = clock();
+
+    InitializeCriticalSectionAndSpinCount(&CriticalSection, 0x80000400);
+
     ray_dispatcher_add_job(&dispatcher, &rj1);
     ray_dispatcher_add_job(&dispatcher, &rj2);
     ray_dispatcher_add_job(&dispatcher, &rj3);
     ray_dispatcher_add_job(&dispatcher, &rj4);
 
-    // Render some fancy stuff here using openGL!
+    // Render some fancy stuff here using win32 API!
+    //Sleep(2000);
+    //printf("%x %x %x\n", image->data[10], image->data[20], image->data[30]);
+    run_window(image->data, width, height);
 
-    ray_dispatcher_worker_fence(&dispatcher);
+    clock_t end = ray_dispatcher_worker_fence(&dispatcher);
     free_ray_dispatcher(&dispatcher);
 
-    clock_t end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     printf("Render time: %lf\n", time_spent);
 
-    write_img_buffer_to_file(image, "output.ppm");
+    write_img_buffer_to_file(image, "output.bmp");
 
     free_hit_list(&world);
 
     free_image_buffer(image);
+
+    DeleteCriticalSection(&CriticalSection);
 }

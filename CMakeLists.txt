@@ -24,4 +24,7 @@ add_executable (Raytracer
 
     src/dispatcher.c
     inc/dispatcher.h
+
+    src/display.c
+    inc/display.h
     )

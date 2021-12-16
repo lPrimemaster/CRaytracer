@@ -5,6 +5,9 @@
 #include <time.h>
 #include <memory.h>
 #include <math.h>
+#include <windows.h>
+
+CRITICAL_SECTION CriticalSection;
 
 typedef float f32;
 typedef unsigned char u8;
