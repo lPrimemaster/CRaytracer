@@ -173,5 +173,7 @@ int run_window(u32* data, i32 width, i32 height)
 		//TODO: logging
 	}
 
+	VirtualFree(bitmapMemory, 0, MEM_FREE);
+
 	return 0;
 }
