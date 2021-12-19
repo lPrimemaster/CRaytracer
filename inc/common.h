@@ -7,26 +7,51 @@
 #include <math.h>
 #include <windows.h>
 
+#define PI 3.141592654f
+
 CRITICAL_SECTION CriticalSection;
 
-typedef float f32;
-typedef unsigned char u8;
-typedef unsigned int  u32;
-typedef signed   char i8;
-typedef          int  i32;
+typedef float              f32;
+typedef unsigned char      u8;
+typedef unsigned int       u32;
+typedef unsigned long long u64;
+typedef signed   char      i8;
+typedef          int       i32;
 
 // Random generators
 void init_random();
 f32 random_f32();
 f32 random_range_f32(f32 min, f32 max);
 
+i32 random_range_i32(i32 min, i32 max);
+
 f32 clamp(f32 x, f32 min, f32 max);
+
+// Vector2 code
+typedef struct {
+  union
+  {
+    struct
+    {
+      f32 u;
+      f32 v;
+    };
+    f32 p[2];
+  };
+} v2_f32;
 
 // Vector3 code
 typedef struct {
-  f32 x;  
-  f32 y;  
-  f32 z;  
+  union
+  {
+    struct
+    {
+      f32 x;  
+      f32 y;  
+      f32 z; 
+    };
+    f32 p[3];
+  };
 } v3_f32;
 
 #define v3_f32_SCALAR_OP_D(name) \

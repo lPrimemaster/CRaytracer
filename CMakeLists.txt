@@ -27,4 +27,10 @@ add_executable (Raytracer
 
     src/display.c
     inc/display.h
+
+    src/noise.c
+    inc/noise.h
+
+    src/profiler.c
+    inc/profiler.h
     )

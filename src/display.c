@@ -155,6 +155,7 @@ int run_window(u32* data, i32 width, i32 height)
 					DispatchMessage(&message);
 				}
 
+				// Render image on screen
                 EnterCriticalSection(&CriticalSection);
                 memcpy(bitmapMemory, data, bitmapWidth * bitmapHeight * 4);
                 LeaveCriticalSection(&CriticalSection);

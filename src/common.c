@@ -17,6 +17,11 @@ f32 random_range_f32(f32 min, f32 max)
     return min + (max - min) * random_f32();
 }
 
+i32 random_range_i32(i32 min, i32 max)
+{
+    return (int)random_range_f32(min, max + 1);
+}
+
 f32 clamp(f32 x, f32 min, f32 max) {
     if (x < min) return min;
     if (x > max) return max;

@@ -3,12 +3,13 @@
 #include <windows.h>
 
 // Asume rgb for now (TODO: Check malloc return)
-img_buffer* new_image_buffer(u32 w, u32 h)
+img_buffer* new_image_buffer(u32 w, u32 h, u8 bpp)
 {
     img_buffer* b = (img_buffer*)malloc(sizeof(img_buffer));
     b->w = w;
     b->h = h;
-    b->data = malloc(w * h * 4 * sizeof(u8));
+    b->data = malloc(w * h * bpp * sizeof(u8));
+    b->bpp = bpp;
     return b;
 }
 
@@ -48,11 +49,36 @@ const int BYTES_PER_PIXEL  =  3;
 const int FILE_HEADER_SIZE = 14;
 const int INFO_HEADER_SIZE = 40;
 
-void generateBitmapImage(unsigned char* image, int height, int width, char* imageFileName);
+void generateBitmapImage(unsigned char* image, int height, int width, const char* imageFileName);
 unsigned char* createBitmapFileHeader(int height, int stride);
 unsigned char* createBitmapInfoHeader(int height, int width);
 
-static void generateBitmapImage (unsigned char* image, int height, int width, char* imageFileName)
+img_buffer* read_bitmap_image(const char* filename)
+{
+    TCHAR full_path[128];
+    GetModuleFileName(NULL, full_path, 128);
+
+    char path_only[128];
+    _splitpath(full_path, path_only, &path_only[2], NULL, NULL);
+    sprintf(path_only, "%s%s", path_only, filename);
+
+    HBITMAP hBMP =(HBITMAP)LoadImage(NULL, path_only, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+
+    BITMAP bitmap;
+    GetObject(hBMP, sizeof(bitmap), (LPVOID)&bitmap);
+
+    u8 bpp = (u8)(bitmap.bmWidthBytes / bitmap.bmWidth);
+
+    img_buffer* img = new_image_buffer(bitmap.bmWidth, bitmap.bmHeight, bpp);
+
+    memcpy(img->data, bitmap.bmBits, bitmap.bmHeight * bitmap.bmWidthBytes);
+    
+    DeleteObject(hBMP);
+
+    return img;
+}
+
+static void generateBitmapImage (unsigned char* image, int height, int width, const char* imageFileName)
 {
     int widthInBytes = width * BYTES_PER_PIXEL;
 
