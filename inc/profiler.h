@@ -37,4 +37,9 @@ struct nlist* lookup(char* s);
 struct nlist* insert(char* name, profile_block* defn);
 void free_hash_table();
 
+// A counter to get rays performance counter
+void          init_performance_counters();
+LARGE_INTEGER start_performance_us();
+u64           query_performance_us(LARGE_INTEGER li); 
+
 #endif

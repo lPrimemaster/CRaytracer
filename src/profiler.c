@@ -119,3 +119,28 @@ void _profile_block_end(char* function, char* file, i32 le)
     pb->block_line_end = le;
     pb->cycles = __rdtsc() - pb->cycles;
 }
+
+static LARGE_INTEGER PFrequency;
+
+void init_performance_counters()
+{
+    QueryPerformanceFrequency(&PFrequency); 
+}
+
+LARGE_INTEGER start_performance_us()
+{
+    LARGE_INTEGER StartingTime;
+    QueryPerformanceCounter(&StartingTime);
+    return StartingTime;
+}
+
+u64 query_performance_us(LARGE_INTEGER li)
+{
+    LARGE_INTEGER EndingTime, ElapsedMicroseconds;
+    QueryPerformanceCounter(&EndingTime);
+    ElapsedMicroseconds.QuadPart = EndingTime.QuadPart - li.QuadPart;
+
+    ElapsedMicroseconds.QuadPart *= 1000000;
+    ElapsedMicroseconds.QuadPart /= PFrequency.QuadPart;
+    return ElapsedMicroseconds.QuadPart;
+}

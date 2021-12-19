@@ -48,7 +48,7 @@ internal void Win32UpdateWindow(HDC deviceContext, RECT* windowRect, int x, int 
 		/*x, y, width, height,
 		x, y, width, height,*/
 		0, 0, bitmapWidth, bitmapHeight,
-		0, 0, windowWidth, windowHeight,
+		0, 0, bitmapWidth, bitmapHeight,
 		bitmapMemory,
 		&bitmapInfo,
 		DIB_RGB_COLORS,
@@ -88,18 +88,21 @@ LRESULT CALLBACK Win32MainWindowCallback(
 			PAINTSTRUCT paint;
 			HDC deviceContext = BeginPaint(window, &paint);
 
-			int x = paint.rcPaint.left;
-			int y = paint.rcPaint.top;
-			int height = paint.rcPaint.bottom - paint.rcPaint.top;
-			int width = paint.rcPaint.right - paint.rcPaint.left;
+			// int x = paint.rcPaint.left;
+			// int y = paint.rcPaint.top;
+			// int height = paint.rcPaint.bottom - paint.rcPaint.top;
+			// int width = paint.rcPaint.right - paint.rcPaint.left;
 
-			RECT clientRect;
-			GetClientRect(window, &clientRect);
+			// RECT clientRect;
+			// GetClientRect(window, &clientRect);
 			
-			Win32UpdateWindow(deviceContext, &clientRect, x, y, width, height);
+			// Win32UpdateWindow(deviceContext, &clientRect, x, y, width, height);
 			
 			EndPaint(window, &paint);
 		} break;
+
+		case WM_ERASEBKGND:
+			return TRUE;
 
 		default:
 		{
@@ -111,7 +114,16 @@ LRESULT CALLBACK Win32MainWindowCallback(
 	return result;
 }
 
-int run_window(u32* data, i32 width, i32 height)
+static void draw_text(HDC hdc, RECT* rect, i32 x, i32 y, LPTSTR text)
+{
+	SetTextColor(hdc, 0x00FFFFFF);
+	SetBkMode(hdc, TRANSPARENT);
+	rect->left = x;
+	rect->top = y;
+	DrawText(hdc, text, -1, rect, DT_SINGLELINE | DT_NOCLIP);
+}
+
+int run_window(ray_dispatcher* rd, i32 width, i32 height)
 {
     Win32InitDIBSection(width, height);
 
@@ -147,6 +159,8 @@ int run_window(u32* data, i32 width, i32 height)
 			MSG message;
 			running = 1;
             u8 time = 0;
+			char performance_line_buffer[512];
+			u64 max_total_us = 0;
 			while (running)
 			{
 				while(PeekMessage(&message, 0, 0, 0, PM_REMOVE))
@@ -157,12 +171,56 @@ int run_window(u32* data, i32 width, i32 height)
 
 				// Render image on screen
                 EnterCriticalSection(&CriticalSection);
-                memcpy(bitmapMemory, data, bitmapWidth * bitmapHeight * 4);
+                memcpy(bitmapMemory, rd->image->data, bitmapWidth * bitmapHeight * 4);
                 LeaveCriticalSection(&CriticalSection);
-                RECT clientRect;
+
+				HDC hdc = GetDC(windowHandle);
+				RECT clientRect;
                 GetClientRect(windowHandle, &clientRect);
-                Win32UpdateWindow(GetDC(windowHandle), &clientRect, 0, 0, bitmapWidth, bitmapHeight);
+                Win32UpdateWindow(hdc, &clientRect, 0, 0, bitmapWidth, bitmapHeight);
+
+
+				// Render some text
+				snprintf(performance_line_buffer, 512, 
+						"Res( %dp )     SPP( %d )     DPT( %d )\n", 
+						rd->image->h, rd->spp, rd->max_depth
+					);
+				draw_text(hdc, &clientRect, 20, 20, performance_line_buffer);
+
+				f32 total_ry_ms = 0.0f;
+				f32 total_ry_ms_avg = 0.0f;
+				for(i32 t = 0; t < rd->thread_count; t++)
+				{
+					u64 last_thread_spp_us = _InterlockedCompareExchange64(&rd->atomic_spp_counter[t], 0, 0);
+					i32 last_thread_spp_ry = _InterlockedCompareExchange(&rd->atomic_spp_rays[t], 0, 0);
+
+					u64 total_us = _InterlockedCompareExchange64(&rd->atomic_spp_counter_total[t], 0, 0);
+					i32 total_ry = _InterlockedCompareExchange(&rd->atomic_spp_rays_total[t], 0, 0);
+
+					f32 ry_ms = (f32)last_thread_spp_ry / last_thread_spp_us * 1000.0f;
+					f32 ry_ms_avg = (f32)total_ry / total_us * 1000.0f;
+
+					total_ry_ms += ry_ms;
+					total_ry_ms_avg += ry_ms_avg;
+
+					max_total_us = max(total_us, max_total_us);
+
+					snprintf(performance_line_buffer, 512, 
+						"Thread #%d: %09.1f kRays/s (avg. %09.1f kRays/s) (%.1f s)\n", 
+						t, ry_ms, ry_ms_avg, total_us / 1000000.0f
+					);
+					draw_text(hdc, &clientRect, 20, 20 * (t + 2), performance_line_buffer);
+				}
+
+				snprintf(performance_line_buffer, 512, 
+					"Total: %06.1f MRays/s (avg. %06.1f MRays/s) (%.1f s)\n", 
+					total_ry_ms / 1000.0f, total_ry_ms_avg / 1000.0f, max_total_us / 1000000.0f
+				);
+				draw_text(hdc, &clientRect, 20, 20 * (rd->thread_count + 2), performance_line_buffer);
+
+				Sleep(33); // TODO: This is not very nice. Find another way! - 30FPS Max
 			}
+			_InterlockedExchange16(&rd->atomic_window_running, 0);
 		}
 		else
 		{

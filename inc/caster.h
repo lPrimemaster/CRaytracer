@@ -95,5 +95,5 @@ bvh_node* new_bvh_tree(hit_list* list, i32 start, i32 stop);
 void free_bvh_tree(bvh_node* parent);
 i8 bvh_tree_hit_all(bvh_node* parent, ray* r, f32 tmin, f32 tmax, hit_record* rec);
 
-v3_f32 ray_color(ray* r, hit_list* list, i32 depth);
+v3_f32 ray_color(ray* r, hit_list* list, i32 depth, i32* total_rays);
 #endif

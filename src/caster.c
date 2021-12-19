@@ -422,7 +422,7 @@ i8 bvh_tree_hit_all(bvh_node* parent, ray* r, f32 tmin, f32 tmax, hit_record* re
     }
 }
 
-v3_f32 ray_color(ray* r, hit_list* list, i32 depth)
+v3_f32 ray_color(ray* r, hit_list* list, i32 depth, i32* total_rays)
 {
     PROFILE_START;
     static const v3_f32 sc = {0, 0, -1};
@@ -432,8 +432,11 @@ v3_f32 ray_color(ray* r, hit_list* list, i32 depth)
 
     hit_record rec;
 
+
     if(depth <= 0)
         return black;
+        
+    *total_rays += 1;
 
     if(hit_list_hit_all(list, r, 0.001f, 0xFFFFFF, &rec))
     {
@@ -445,20 +448,20 @@ v3_f32 ray_color(ray* r, hit_list* list, i32 depth)
             if(ray_scatter_lambertian(r, &rec, &scattered))
             {
                 v3_f32 color = texture_get_color_at(&rec.m->texture, rec.uv, rec.p);
-                return v3_f32_mult(color, ray_color(&scattered, list, depth - 1));
+                return v3_f32_mult(color, ray_color(&scattered, list, depth - 1, total_rays));
             }
             break;
         case MTYPE_METAL:
             if(ray_scatter_metal(r, &rec, &scattered))
             {
                 v3_f32 color = texture_get_color_at(&rec.m->texture, rec.uv, rec.p);
-                return v3_f32_mult(color, ray_color(&scattered, list, depth - 1));
+                return v3_f32_mult(color, ray_color(&scattered, list, depth - 1, total_rays));
             }
             break;
         case MTYPE_DIELECTRIC:
             if(ray_scatter_dielectric(r, &rec, &scattered))
             {
-                return v3_f32_mult(white, ray_color(&scattered, list, depth - 1));
+                return v3_f32_mult(white, ray_color(&scattered, list, depth - 1, total_rays));
             }
             break;
         case MTYPE_DIFF_LIGHT:

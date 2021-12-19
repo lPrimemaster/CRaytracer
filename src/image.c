@@ -8,7 +8,7 @@ img_buffer* new_image_buffer(u32 w, u32 h, u8 bpp)
     img_buffer* b = (img_buffer*)malloc(sizeof(img_buffer));
     b->w = w;
     b->h = h;
-    b->data = malloc(w * h * bpp * sizeof(u8));
+    b->data = calloc(w * h * bpp, sizeof(u8));
     b->bpp = bpp;
     return b;
 }
@@ -33,6 +33,23 @@ void image_buffer_set_pixel(img_buffer* buffer, i32 x, i32 y, v3_f32 color)
     buffer->data[4 * y * buffer->w + 4 * x + 1] = (u8)(clamp(color.y, 0.0f, 0.999f) * 256);
     buffer->data[4 * y * buffer->w + 4 * x + 2] = (u8)(clamp(color.z, 0.0f, 0.999f) * 256);
     buffer->data[4 * y * buffer->w + 4 * x + 3] = 0x00;
+}
+
+void image_buffer_add_pixel(img_buffer* buffer, i32 x, i32 y, v3_f32 color)
+{
+    buffer->data[4 * y * buffer->w + 4 * x    ] += (u8)(clamp(color.x, 0.0f, 0.999f) * 256);
+    buffer->data[4 * y * buffer->w + 4 * x + 1] += (u8)(clamp(color.y, 0.0f, 0.999f) * 256);
+    buffer->data[4 * y * buffer->w + 4 * x + 2] += (u8)(clamp(color.z, 0.0f, 0.999f) * 256);
+    buffer->data[4 * y * buffer->w + 4 * x + 3] = 0x00;
+}
+
+v3_f32 image_buffer_get_pixel(img_buffer* buffer, i32 x, i32 y)
+{
+    v3_f32 r;
+    r.x = buffer->data[4 * y * buffer->w + 4 * x    ];
+    r.y = buffer->data[4 * y * buffer->w + 4 * x + 1];
+    r.z = buffer->data[4 * y * buffer->w + 4 * x + 2];
+    return r;
 }
 
 void free_image_buffer(img_buffer* buffer)

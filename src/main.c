@@ -5,6 +5,7 @@
 #include "../inc/camera.h"
 #include "../inc/dispatcher.h"
 #include "../inc/display.h"
+#include "../inc/profiler.h"
 
 #include <time.h>
 
@@ -22,10 +23,10 @@ material mat0 = {.type = MTYPE_DIELECTRIC, .n_refract = 1.5};
 material mat1 = {.type = MTYPE_LAMBERTIAN, .texture.color[0] = {0.4f, 0.2f, 0.1f}};
 material mat2 = {.type = MTYPE_METAL, .texture.color[0] = {0.7f, 0.6f, 0.5f}, .fuzziness = 0.0f};
 material mat3 = {.type = MTYPE_LAMBERTIAN, .texture.type = TTYPE_IMAGE_ALBEDO };
-material mat4 = {.type = MTYPE_DIFF_LIGHT, .texture.type = TTYPE_COLOR, .texture.color = {1, 1, 1} };
+material mat4 = {.type = MTYPE_DIFF_LIGHT, .texture.type = TTYPE_COLOR, .texture.color = {2, 2, 2} };
 sphere s[3] = {
-    { .center = {0, 1.0f, 0}, .radius = 1.0f, .material = &mat0 },
-    { .center = {4, 1.0f, 0}, .radius = 1.0f, .material = &mat2 },
+    { .center = {0, 1.0f, 0}, .radius = 1.0f, .material = &mat2 },
+    { .center = {4, 1.0f, 0}, .radius = 1.0f, .material = &mat0 },
     { .center = {4, 1.0f, 3.0f}, .radius = 1.0f, .material = &mat3 }
 };
 
@@ -42,7 +43,7 @@ hit_list scene_0()
 
     mat3.texture.image = read_bitmap_image("earthmap.bmp");
 
-    hit_list_add_tail(&world, &s[0], HTYPE_SPHERE);
+    // hit_list_add_tail(&world, &s[0], HTYPE_SPHERE);
     hit_list_add_tail(&world, &s[1], HTYPE_SPHERE);
     hit_list_add_tail(&world, &s[2], HTYPE_SPHERE);
 
@@ -54,11 +55,12 @@ hit_list scene_0()
 int main(int argc, char* argv[])
 {
     init_random();
+    init_performance_counters();
     
     // Viewport / Image
     const f32 aspect = 16.0f / 9.0f;
-    const i32 width = atoi(argv[1]);
-    const i32 height = (i32)(width / aspect);
+    const i32 height = atoi(argv[1]);
+    const i32 width = (i32)(height * aspect);
     const i32 spp = atoi(argv[2]);
     const i32 max_depth = atoi(argv[3]);
 
@@ -78,37 +80,30 @@ int main(int argc, char* argv[])
     v3_f32 black = {0.0f, 0.0f, 0.0f};
     image_buffer_set_all(image, black);
 
-    // Render
-    ray_dispatcher dispatcher = new_ray_dispatcher(4, 4, width, height, spp, &cam, image);
-
     hit_list world = scene_0();
 
-    // TODO: This is dumb! Refactor -> All inside ray_dispatcher
-    ray_job rj1 = {.hl = &world, .depth = max_depth};
-    ray_job rj2 = {.hl = &world, .depth = max_depth};
-    ray_job rj3 = {.hl = &world, .depth = max_depth};
-    ray_job rj4 = {.hl = &world, .depth = max_depth};
+    // Render
+    const u8 rendering_threads = atoi(argv[4]);
+    ray_dispatcher dispatcher = new_ray_dispatcher(
+        rendering_threads, rendering_threads, 
+        width, height, spp, max_depth, &cam, 
+        image, &world
+    );
 
     clock_t begin = clock();
 
     InitializeCriticalSectionAndSpinCount(&CriticalSection, 0x80000400);
 
-    ray_dispatcher_add_job(&dispatcher, &rj1);
-    ray_dispatcher_add_job(&dispatcher, &rj2);
-    ray_dispatcher_add_job(&dispatcher, &rj3);
-    ray_dispatcher_add_job(&dispatcher, &rj4);
+    ray_dispatcher_run_jobs(&dispatcher);
 
-    // Render some fancy stuff here using win32 API!
-    //Sleep(2000);
-    //printf("%x %x %x\n", image->data[10], image->data[20], image->data[30]);
-    run_window((u32*)image->data, width, height);
+    // Render some fancy stuff using win32 API!
+    run_window(&dispatcher, width, height);
 
-    // TODO: Find a way to do performance check properly
     clock_t end = ray_dispatcher_worker_fence(&dispatcher);
     free_ray_dispatcher(&dispatcher);
 
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("Render time: %lf\n", time_spent);
+    printf("App time: %lf\n", time_spent);
 
     write_img_buffer_to_file(image, "output.bmp");
 
