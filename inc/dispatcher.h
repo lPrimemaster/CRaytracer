@@ -11,7 +11,7 @@
 
 #define DMODE_PARALLELW 0
 
-// TODO: Pad these huge structs
+// TODO: Pad (???) these huge structs or refactor
 typedef struct
 {
     PTP_POOL pool;

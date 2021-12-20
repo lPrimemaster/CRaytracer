@@ -7,6 +7,8 @@
 #include "../inc/display.h"
 #include "../inc/profiler.h"
 
+#include "../inc/display_acc.h"
+
 #include <time.h>
 
 material mat_ground = {
@@ -52,6 +54,7 @@ hit_list scene_0()
     return world;
 }
 
+// This is to run from cmd
 int main(int argc, char* argv[])
 {
     init_random();
@@ -99,6 +102,8 @@ int main(int argc, char* argv[])
     // Render some fancy stuff using win32 API!
     run_window(&dispatcher, width, height);
 
+    // window_loop(&dispatcher, width, height);
+
     clock_t end = ray_dispatcher_worker_fence(&dispatcher);
     free_ray_dispatcher(&dispatcher);
 
@@ -114,4 +119,6 @@ int main(int argc, char* argv[])
     free_image_buffer(mat3.texture.image);
 
     DeleteCriticalSection(&CriticalSection);
+
+    return 0;
 }
